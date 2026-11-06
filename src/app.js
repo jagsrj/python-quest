@@ -75,21 +75,23 @@ const KEY = 'pyquest.v1';
 const AVATARS = ['🐍', '🦊', '🐢', '🐼', '🦉', '🐙', '🦖', '🐱'];
 const LEVELS = [[0, 'Hatchling'], [200, 'Wiggler'], [500, 'Explorer'], [900, 'Coder'], [1400, 'Builder'], [2000, 'Hacker'], [2700, 'Wizard'], [3500, 'Legend']];
 let DB = loadDB();
+Object.values(DB.profiles).forEach(q => { try { q.xp = computeXP(q); } catch (e) {} });
 const GUEST = blankProfile('Guest', '🐍', 'explorer');
 
 function loadDB() {
   try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.profiles) return j; } catch (e) {}
   return { profiles: {}, current: null };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} }
+function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} }
+function save() { saveLocal(); scheduleSync(); }
 function blankProfile(name, avatar, track) {
-  return { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, avatar, track, xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [], unlockAll: false };
+  return { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, avatar, track, xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [], unlockAll: false, prefsAt: Date.now(), account: null };
 }
 function me() { return DB.profiles[DB.current] || GUEST; }
 function hasProfile() { return !!DB.profiles[DB.current]; }
 function prog(id) {
   const p = me();
-  if (!p.progress[id]) p.progress[id] = { quiz: false, quizFirst: false, main: false, bonus: false, code: {}, fails: { main: 0, bonus: 0 } };
+  if (!p.progress[id]) p.progress[id] = { quiz: false, quizFirst: false, main: false, bonus: false, code: {}, codeAt: {}, fails: { main: 0, bonus: 0 } };
   return p.progress[id];
 }
 function mastered(L) {
@@ -133,7 +135,7 @@ function award(xp, why) {
   if (!hasProfile()) return;
   const p = me();
   const before = levelOf(p.xp).n;
-  p.xp += xp;
+  p.xp = computeXP(p);
   touchStreak();
   const fresh = BADGES.filter(b => !p.badges.includes(b.id) && b.test());
   fresh.forEach(b => p.badges.push(b.id));
@@ -423,7 +425,7 @@ function renderTop() {
       <span class="engine ${Engine.status}" id="engine">${Engine.status === 'ready' ? 'Python ready' : Engine.status === 'error' ? 'Python offline' : 'Python loading…'}</span>
       <span class="stat" title="${lv.toNext > 0 ? lv.toNext + ' XP to the next level' : ''}"><span><span class="level">Lv ${lv.n} ${lv.name}</span><span class="xpbar"><i style="width:${lv.pct}%"></i></span></span>${p.xp.toLocaleString()} XP</span>
       <span class="stat" title="Days in a row"><span class="flame">🔥</span>${liveStreak()}</span>
-      <button class="who" type="button" id="who"><span class="av">${p.avatar}</span>${esc(p.name)}</button>
+      <button class="who" type="button" id="who"><span class="av">${p.avatar}</span>${esc(p.name)}${canSync() ? ' <span title="Saved online" aria-label="saved online">☁</span>' : ''}</button>
     </div>`;
   $('#who').addEventListener('click', () => hasProfile() ? profileModal() : welcomeModal());
 }
@@ -546,7 +548,7 @@ function renderLesson(L) {
     let timer;
     const runner = Runner($('[data-part]', sec), {
       code: { text: p.code[kind] != null ? p.code[kind] : part.starter, original: part.starter },
-      onChange(v) { clearTimeout(timer); timer = setTimeout(() => { p.code[kind] = v; if (hasProfile()) save(); }, 400); },
+      onChange(v) { clearTimeout(timer); timer = setTimeout(() => { p.code[kind] = v; p.codeAt = p.codeAt || {}; p.codeAt[kind] = Date.now(); if (hasProfile()) save(); }, 400); },
       check: async () => {
         const btn = runner.checkBtn; btn.disabled = true;
         verdict.hidden = false; verdict.className = 'verdict'; verdict.textContent = 'Pip is testing your code…';
@@ -599,11 +601,11 @@ function renderLesson(L) {
 }
 
 // ================= Modals =================
-function modal(html, onMount) {
+function modal(html, onMount, locked = false) {
   const bg = h(`<div class="modal-bg" role="dialog" aria-modal="true"><div class="modal">${html}</div></div>`);
   document.body.appendChild(bg);
   const close = () => { bg.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e) => { if (e.key === 'Escape' && hasProfile()) close(); };
+  const onKey = (e) => { if (e.key === 'Escape' && hasProfile() && !locked) close(); };
   document.addEventListener('keydown', onKey);
   onMount(bg, close);
   const f = bg.querySelector('input, button'); f && f.focus();
@@ -623,7 +625,9 @@ function welcomeModal(adding = false) {
       <button type="button" class="track" data-t="challenger" aria-pressed="false"><b>Challenger</b><span>Ready for more. You must beat each bonus challenge to unlock the next mission. Great for around grade 10.</span></button>
     </div></div>
     <div class="row"><button type="button" class="btn primary" id="go">Start my quest</button>${adding ? '<button type="button" class="btn light" id="cancel">Cancel</button>' : ''}</div>
-    <p class="small" style="margin:0">Your progress is saved in this browser on this device.</p>`, (bg, close) => {
+    <p class="small" style="margin:0">Your progress is saved in this browser. ${Cloud.accounts ? 'You can save it online later.' : ''}</p>
+    ${Cloud.accounts && !adding ? '<button type="button" class="linkish" id="have">Already have an account? Sign in</button>' : ''}`, (bg, close) => {
+    const hv = $('#have', bg); if (hv) hv.addEventListener('click', () => { close(); authModal('login'); });
     bg.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => { avatar = b.dataset.a; bg.querySelectorAll('[data-a]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
     bg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { track = b.dataset.t; bg.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
     const c = $('#cancel', bg); if (c) c.addEventListener('click', close);
@@ -641,23 +645,27 @@ function welcomeModal(adding = false) {
 function profileModal() {
   const p = me();
   let resetArmed = false;
-  modal(`
+  let closer = null;
+  const acct = accountPanel(() => closer && closer());
+  closer = modal(`
     <h2>${p.avatar} ${esc(p.name)}</h2>
     <p style="margin:0">Level ${levelOf(p.xp).n} ${levelOf(p.xp).name} · ${p.xp} XP · best streak ${p.best || 0} day(s)</p>
     <div><label id="trl2">Track</label><div class="tracks" role="group" aria-labelledby="trl2">
       <button type="button" class="track" data-t="explorer" aria-pressed="${p.track === 'explorer'}"><b>Explorer</b><span>Bonus challenges optional. Around grade 7.</span></button>
       <button type="button" class="track" data-t="challenger" aria-pressed="${p.track === 'challenger'}"><b>Challenger</b><span>Bonus needed to unlock the next mission. Around grade 10.</span></button>
     </div></div>
+    ${acct.html}
     <label class="row" style="font-weight:700"><input type="checkbox" id="ua" ${p.unlockAll ? 'checked' : ''}> Unlock all missions (for teachers and parents)</label>
     <div><label>Switch explorer</label><div class="profiles">${Object.values(DB.profiles).map(q => `<button type="button" data-p="${q.id}" class="${q.id === p.id ? 'cur' : ''}"><span style="font-size:22px">${q.avatar}</span><span><b>${esc(q.name)}</b><br><span class="small">${q.xp} XP · ${q.track}</span></span></button>`).join('')}</div></div>
     <div class="row"><button type="button" class="btn light" id="add">Add another explorer</button><button type="button" class="btn light" id="reset">Reset my progress</button><span class="grow"></span><button type="button" class="btn primary" id="close">Done</button></div>`, (bg, close) => {
-    bg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { p.track = b.dataset.t; save(); bg.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
-    $('#ua', bg).addEventListener('change', (e) => { p.unlockAll = e.target.checked; save(); });
+    bg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { p.track = b.dataset.t; p.prefsAt = Date.now(); save(); bg.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+    $('#ua', bg).addEventListener('change', (e) => { p.unlockAll = e.target.checked; p.prefsAt = Date.now(); save(); });
+    acct.mount(bg, close);
     bg.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { DB.current = b.dataset.p; save(); close(); renderTop(); route(); }));
     $('#add', bg).addEventListener('click', () => { close(); welcomeModal(true); });
     $('#reset', bg).addEventListener('click', (e) => {
       if (!resetArmed) { resetArmed = true; e.target.textContent = 'Tap again: erase everything?'; return; }
-      Object.assign(p, { xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [] }); save(); close(); renderTop(); route();
+      Object.assign(p, { xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [] }); saveLocal(); forcePush(); close(); renderTop(); route();
     });
     $('#close', bg).addEventListener('click', () => { close(); renderTop(); route(); });
   });
@@ -666,6 +674,7 @@ function profileModal() {
 // ================= Router & boot =================
 function route() {
   const hsh = location.hash.slice(1);
+  if (hsh === 'privacy') return renderPrivacy();
   if (hsh.startsWith('m-')) {
     const L = LESSONS.find(x => 'm-' + x.id === hsh);
     if (L) return renderLesson(L);
@@ -676,4 +685,5 @@ window.addEventListener('hashchange', route);
 Engine.boot();
 renderTop();
 route();
-if (!hasProfile()) welcomeModal();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncNow(); });
+refreshAuth().then(() => { if (!hasProfile() && !document.querySelector('.modal-bg')) welcomeModal(); });

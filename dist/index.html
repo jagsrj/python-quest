@@ -213,6 +213,18 @@ pre.want { background: #f1f7f3; border-left: 4px solid var(--leaf); padding: 8px
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 14px; font-weight: 800; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
 #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
 
+/* accounts */
+.acct { display: grid; gap: 8px; background: #f1f7f3; border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--sky); font-weight: 700; text-decoration: underline; text-align: left; }
+.btn.danger { color: #8f2a20; }
+.btn.danger-solid { background: var(--coral); color: #fff; }
+.check { font-weight: 700; align-items: flex-start; flex-wrap: nowrap; }
+.check input { margin-top: 5px; width: 18px; height: 18px; flex: none; }
+.modal input[type=password] { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--line); }
+.savecode { font: 700 clamp(20px, 6vw, 28px)/1.3 var(--font-code); letter-spacing: 2px; text-align: center; padding: 16px; border-radius: 14px; background: #fff8de; border: 2px dashed #e0b737; word-break: break-all; }
+.foot { display: flex; gap: 16px; justify-content: center; padding: 0 16px 40px; color: var(--muted); font-weight: 700; font-size: 14px; }
+.foot a { color: var(--leaf-deep); }
+
 @media (max-width: 640px) {
   .hero { grid-template-columns: 1fr; }
   .hero .pip-big { display: none; }
@@ -229,6 +241,7 @@ pre.want { background: #f1f7f3; border-left: 4px solid var(--leaf); padding: 8px
 <body>
 <header class="top" id="top"></header>
 <main id="main"></main>
+<footer class="foot"><span>Python Quest</span><a href="#privacy">Privacy</a></footer>
 <script>
 const ENGINE_PY = "import sys, io, math, random, traceback, types, json\n\nclass _NeedInput(Exception):\n    pass\n\n_T = {}\n\ndef _reset_turtle():\n    _T.clear()\n    _T.update({'ops': [], 'used': False, 'turtles': [], 'default': None, 'bg': None, 'mode': 255})\n\n_reset_turtle()\n\ndef _color(c):\n    if len(c) == 1:\n        c = c[0]\n        if isinstance(c, str):\n            return c\n        c = tuple(c)\n    if len(c) == 3:\n        vals = [float(v) for v in c]\n        if all(v <= 1 for v in vals) and _T['mode'] == 1.0:\n            vals = [v * 255 for v in vals]\n        elif all(v <= 1 for v in vals) and any(isinstance(v, float) for v in c):\n            vals = [v * 255 for v in vals]\n        r, g, b = [max(0, min(255, int(round(v)))) for v in vals]\n        return 'rgb(%d,%d,%d)' % (r, g, b)\n    raise ValueError('a colour looks like \"red\" or (255, 0, 0)')\n\n\nclass Turtle:\n    def __init__(self, *args, **kwargs):\n        self.x = 0.0; self.y = 0.0; self.h = 0.0\n        self.down = True; self.pc = 'black'; self.fc = 'black'; self.w = 2.0\n        self.filling = None; self.fill_at = 0; self.visible = True\n        _T['used'] = True\n        _T['turtles'].append(self)\n\n    def _move(self, nx, ny):\n        if self.down:\n            _T['ops'].append(['line', self.x, self.y, nx, ny, self.pc, self.w])\n        if self.filling is not None:\n            self.filling.append([nx, ny])\n        self.x, self.y = nx, ny\n\n    def forward(self, distance):\n        d = float(distance); r = math.radians(self.h)\n        self._move(self.x + d * math.cos(r), self.y + d * math.sin(r))\n    fd = forward\n    def backward(self, distance): self.forward(-float(distance))\n    bk = back = backward\n    def left(self, angle): self.h = (self.h + float(angle)) % 360\n    lt = left\n    def right(self, angle): self.left(-float(angle))\n    rt = right\n    def penup(self): self.down = False\n    pu = up = penup\n    def pendown(self): self.down = True\n    pd = down = pendown\n    def isdown(self): return self.down\n    def goto(self, x, y=None):\n        if y is None:\n            x, y = x\n        self._move(float(x), float(y))\n    setpos = setposition = goto\n    def setx(self, x): self._move(float(x), self.y)\n    def sety(self, y): self._move(self.x, float(y))\n    def home(self):\n        self.goto(0, 0); self.h = 0.0\n    def setheading(self, angle): self.h = float(angle) % 360\n    seth = setheading\n    def heading(self): return self.h\n    def position(self): return (round(self.x, 2), round(self.y, 2))\n    pos = position\n    def xcor(self): return round(self.x, 2)\n    def ycor(self): return round(self.y, 2)\n    def distance(self, x, y=None):\n        if y is None:\n            x, y = x\n        return math.hypot(self.x - float(x), self.y - float(y))\n    def pencolor(self, *c):\n        if not c: return self.pc\n        self.pc = _color(c)\n    def fillcolor(self, *c):\n        if not c: return self.fc\n        self.fc = _color(c)\n    def color(self, *c):\n        if not c: return (self.pc, self.fc)\n        if len(c) == 2:\n            self.pc = _color((c[0],)); self.fc = _color((c[1],))\n        else:\n            self.pc = self.fc = _color(c)\n    def pensize(self, width=None):\n        if width is None: return self.w\n        self.w = float(width)\n    width = pensize\n    def begin_fill(self):\n        self.filling = [[self.x, self.y]]\n        self.fill_at = len(_T['ops'])\n    def end_fill(self):\n        if self.filling and len(self.filling) > 2:\n            _T['ops'].insert(self.fill_at, ['fill', self.filling, self.fc])\n        self.filling = None\n    def circle(self, radius, extent=None, steps=None):\n        radius = float(radius)\n        extent = 360.0 if extent is None else float(extent)\n        if steps is None:\n            steps = 1 + int(min(11 + abs(radius) / 6.0, 59.0) * abs(extent) / 360.0)\n        w = extent / steps\n        w2 = 0.5 * w\n        l = 2.0 * radius * math.sin(math.radians(w2))\n        if radius < 0:\n            l, w, w2 = -l, -w, -w2\n        self.left(w2)\n        for _ in range(steps):\n            self.forward(l)\n            self.left(w)\n        self.left(-w2)\n    def dot(self, size=None, *c):\n        col = _color(c) if c else self.pc\n        _T['ops'].append(['dot', self.x, self.y, float(size) if size else max(self.w + 4, 2 * self.w), col])\n    def write(self, arg, move=False, align='left', font=None):\n        size = 12\n        if font and len(font) > 1:\n            try: size = int(font[1])\n            except Exception: pass\n        _T['ops'].append(['text', self.x, self.y, str(arg), self.pc, align, size])\n    def stamp(self): self.dot(8)\n    def speed(self, *a, **k): pass\n    def shape(self, *a, **k): pass\n    def shapesize(self, *a, **k): pass\n    turtlesize = shapesize\n    def hideturtle(self): self.visible = False\n    ht = hideturtle\n    def showturtle(self): self.visible = True\n    st = showturtle\n    def isvisible(self): return self.visible\n    def clear(self): pass\n    def reset(self): pass\n\n\nPen = RawTurtle = Turtle\n\n\nclass _Screen:\n    def bgcolor(self, *c):\n        if c: _T['bg'] = _color(c)\n        _T['used'] = True\n    def colormode(self, mode=None):\n        if mode is None: return _T['mode']\n        _T['mode'] = mode\n    def setup(self, *a, **k): pass\n    def title(self, *a, **k): pass\n    def tracer(self, *a, **k): pass\n    def update(self): pass\n    def exitonclick(self): pass\n    def mainloop(self): pass\n    done = mainloop\n    def bye(self): pass\n    def listen(self): pass\n    def onkey(self, *a, **k): pass\n\n_screen = _Screen()\ndef Screen(): return _screen\n\ndef _default():\n    if _T['default'] is None:\n        _T['default'] = Turtle()\n    return _T['default']\n\n_tmod = types.ModuleType('turtle')\n_names = ['forward','fd','backward','bk','back','left','lt','right','rt','penup','pu','up','pendown','pd','down',\n          'isdown','goto','setpos','setposition','setx','sety','home','setheading','seth','heading','position','pos',\n          'xcor','ycor','distance','pencolor','fillcolor','color','pensize','width','begin_fill','end_fill','circle',\n          'dot','write','stamp','speed','shape','shapesize','turtlesize','hideturtle','ht','showturtle','st','isvisible',\n          'clear','reset']\n\ndef _make(name):\n    def f(*a, **k):\n        return getattr(_default(), name)(*a, **k)\n    f.__name__ = name\n    return f\n\nfor _n in _names:\n    setattr(_tmod, _n, _make(_n))\nfor _n in ['bgcolor','colormode','setup','title','tracer','update','exitonclick','mainloop','done','bye','listen','onkey']:\n    setattr(_tmod, _n, getattr(_screen, _n))\n_tmod.Turtle = Turtle; _tmod.Pen = Pen; _tmod.RawTurtle = Turtle; _tmod.Screen = Screen\n_tmod.__all__ = _names + ['bgcolor','colormode','setup','title','tracer','update','exitonclick','mainloop','done',\n                          'bye','listen','onkey','Turtle','Pen','RawTurtle','Screen']\nsys.modules['turtle'] = _tmod\n\n\ndef _describe(e):\n    line = None; text = None\n    if isinstance(e, SyntaxError):\n        line = e.lineno; msg = e.msg or ''\n        text = (e.text or '').rstrip('\\n')\n    else:\n        msg = str(e)\n        for fr in traceback.extract_tb(e.__traceback__):\n            if fr.filename == 'main.py':\n                line = fr.lineno\n    return {'type': type(e).__name__, 'msg': msg, 'line': line, 'text': text}\n\n\ndef pq_run(code, inputs, seed):\n    _reset_turtle()\n    random.seed(seed)\n    out = io.StringIO()\n    feed = list(inputs)\n\n    def _input(prompt=''):\n        p = str(prompt)\n        out.write(p)\n        if not feed:\n            raise _NeedInput(p)\n        v = str(feed.pop(0))\n        out.write(v + '\\n')\n        return v\n\n    import builtins\n    g = {'__name__': '__main__', '__builtins__': builtins, 'input': _input}\n    so, se = sys.stdout, sys.stderr\n    sys.stdout = sys.stderr = out\n    err = None; need = None\n    try:\n        exec(compile(code, 'main.py', 'exec'), g)\n    except _NeedInput as e:\n        need = e.args[0] if e.args else ''\n    except SystemExit:\n        pass\n    except BaseException as e:\n        err = _describe(e)\n    finally:\n        sys.stdout, sys.stderr = so, se\n    text = out.getvalue()\n    if len(text) > 20000:\n        text = text[:20000] + '\\n... (output cut off: too much printing)'\n    turtles = [{'x': t.x, 'y': t.y, 'h': t.h, 'visible': t.visible} for t in _T['turtles']]\n    return json.dumps({'out': text, 'err': err, 'need': need,\n                       'turtle': {'used': _T['used'], 'ops': _T['ops'], 'bg': _T['bg'], 'turtles': turtles}})\n";
 // ---------- Check helpers ----------
@@ -828,6 +841,336 @@ const LESSONS = [
 }
 ];
 
+// ================= Accounts & cloud progress =================
+// Learners can stay on this device only, or create an account (username + password) to save
+// their progress online and use any computer. No email or real name is collected.
+// Sync: pull, merge (progress only moves forward), push only when something changed:
+// about 15 seconds after progress, when the page is hidden, and after signing in.
+
+const Cloud = { accounts: false, user: null, syncing: false, last: 0, error: null, timer: null };
+
+async function api(path, body) {
+  const r = await fetch(path, body
+    ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), credentials: 'same-origin' }
+    : { credentials: 'same-origin' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'http_' + r.status);
+  return d;
+}
+
+function errorText(e) {
+  switch (e) {
+    case 'not_configured': return 'Online saving isn\'t switched on for this website yet.';
+    case 'storage_busy': return 'Online saving is busy right now. Your progress is safe on this device and will save later.';
+    case 'rate_limited': return 'Too many tries in a short time. Wait a few minutes and try again.';
+    case 'bad_username': return 'Usernames are 3 to 24 characters: lowercase letters, numbers and _ only.';
+    case 'weak_password': return 'Your password needs at least 8 characters.';
+    case 'username_taken': return 'Someone already has that username. Try another one.';
+    case 'bad_login': return 'That username and password don\'t match.';
+    case 'bad_recovery': return 'That Save Code doesn\'t match this username.';
+    case 'need_grownup': return 'Please check with a parent, guardian or teacher first, then tick the box.';
+    case 'signed_out': return 'You were signed out. Please sign in again.';
+    case 'too_large': return 'Your progress is too big to save online.';
+    default: return 'Couldn\'t reach the server. Check your internet connection.';
+  }
+}
+
+// XP always comes from progress, so merging two devices can never double-count it.
+function computeXP(p) {
+  let x = 0;
+  for (const L of LESSONS) {
+    const g = p.progress && p.progress[L.id];
+    if (!g) continue;
+    if (g.quiz) x += g.quizFirst ? 25 : 10;
+    if (g.main) x += L.boss ? 200 : 100;
+    if (g.bonus) x += 75;
+  }
+  return x;
+}
+
+function toPayload(p) {
+  return {
+    version: 1, name: p.name, avatar: p.avatar, track: p.track, unlockAll: !!p.unlockAll, prefsAt: p.prefsAt || 0,
+    streak: p.streak || 0, best: p.best || 0, lastDay: p.lastDay || null, badges: p.badges || [], progress: p.progress || {}
+  };
+}
+
+function mergeLesson(a, b) {
+  if (!a) return JSON.parse(JSON.stringify(b));
+  if (!b) return a;
+  const code = {}, codeAt = {};
+  for (const k of ['main', 'bonus']) {
+    const lt = (a.codeAt && a.codeAt[k]) || 0, rt = (b.codeAt && b.codeAt[k]) || 0;
+    const ac = a.code && a.code[k], bc = b.code && b.code[k];
+    const useB = bc !== undefined && (ac === undefined || rt > lt);
+    if (useB) code[k] = bc; else if (ac !== undefined) code[k] = ac;
+    codeAt[k] = Math.max(lt, rt);
+  }
+  const fa = a.fails || {}, fb = b.fails || {};
+  return {
+    quiz: !!(a.quiz || b.quiz), quizFirst: !!(a.quizFirst || b.quizFirst),
+    main: !!(a.main || b.main), bonus: !!(a.bonus || b.bonus),
+    code, codeAt, fails: { main: Math.max(fa.main || 0, fb.main || 0), bonus: Math.max(fa.bonus || 0, fb.bonus || 0) }
+  };
+}
+
+function mergeProfile(L, R) {
+  if (!R || typeof R !== 'object') return L;
+  const out = { ...L };
+  if ((R.prefsAt || 0) > (L.prefsAt || 0)) Object.assign(out, { name: R.name || L.name, avatar: R.avatar || L.avatar, track: R.track || L.track, unlockAll: !!R.unlockAll, prefsAt: R.prefsAt });
+  const newer = (R.lastDay || '') > (L.lastDay || '') || ((R.lastDay || '') === (L.lastDay || '') && (R.streak || 0) > (L.streak || 0)) ? R : L;
+  out.streak = newer.streak || 0; out.lastDay = newer.lastDay || null;
+  out.best = Math.max(L.best || 0, R.best || 0);
+  out.badges = [...new Set([...(L.badges || []), ...(R.badges || [])])];
+  out.progress = {};
+  for (const k of new Set([...Object.keys(L.progress || {}), ...Object.keys(R.progress || {})])) out.progress[k] = mergeLesson((L.progress || {})[k], (R.progress || {})[k]);
+  out.xp = computeXP(out);
+  return out;
+}
+
+const canon = (x) => JSON.stringify(x, (_k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.keys(v).sort().reduce((o, key) => { o[key] = v[key]; return o; }, {}) : v));
+
+function canSync() { return !!(Cloud.user && hasProfile() && me().account === Cloud.user.username); }
+
+function scheduleSync() {
+  if (!canSync()) return;
+  clearTimeout(Cloud.timer);
+  Cloud.timer = setTimeout(() => syncNow(), 15000);
+}
+
+async function syncNow(loud = false) {
+  if (!canSync() || Cloud.syncing) return false;
+  Cloud.syncing = true; renderCloudState();
+  const p = me();
+  try {
+    const remote = await api('/api/progress', { op: 'get' });
+    const before = canon(toPayload(p));
+    Object.assign(p, mergeProfile(p, remote.data));
+    saveLocal();
+    const out = toPayload(p);
+    if (!remote.data || canon(out) !== canon(remote.data)) await api('/api/progress', { op: 'put', data: out });
+    Cloud.last = Date.now(); Cloud.error = null;
+    if (canon(out) !== before) { renderTop(); if (!location.hash.startsWith('#m-')) route(); }
+    if (loud) toast('☁ Saved online');
+    return true;
+  } catch (e) {
+    Cloud.error = e.message;
+    if (e.message === 'signed_out') Cloud.user = null;
+    if (loud) toast(errorText(e.message));
+    return false;
+  } finally {
+    Cloud.syncing = false; renderCloudState();
+  }
+}
+
+// Push this exact state, replacing what is online (used after "Reset my progress").
+async function forcePush() {
+  if (!canSync()) return;
+  try { await api('/api/progress', { op: 'put', data: toPayload(me()) }); Cloud.last = Date.now(); } catch (e) { Cloud.error = e.message; }
+}
+
+async function refreshAuth() {
+  try {
+    const [who, cfg] = await Promise.all([api('/api/auth/me'), api('/api/auth/config')]);
+    Cloud.accounts = !!cfg.accounts;
+    Cloud.user = who.user || null;
+  } catch (e) {
+    Cloud.accounts = false; Cloud.user = null; // static hosting or offline: this-device-only mode
+  }
+  if (Cloud.user) {
+    const linked = Object.values(DB.profiles).find(q => q.account === Cloud.user.username);
+    if (!linked) await adoptAccount(Cloud.user, false);
+    else syncNow();
+  }
+  renderTop();
+}
+
+// After signing in or signing up: link the right local profile to the account, then sync.
+async function adoptAccount(user, preferCurrent) {
+  const existing = Object.values(DB.profiles).find(q => q.account === user.username);
+  let target = existing;
+  if (!target && preferCurrent && hasProfile() && !me().account) target = me();
+  if (!target) {
+    let remote = null;
+    try { remote = (await api('/api/progress', { op: 'get' })).data; } catch (e) {}
+    target = blankProfile(remote && remote.name ? remote.name : user.username, (remote && remote.avatar) || AVATARS[0], (remote && remote.track) || 'explorer');
+    target.prefsAt = 0;
+    DB.profiles[target.id] = target;
+  }
+  target.account = user.username;
+  DB.current = target.id;
+  saveLocal();
+  await syncNow();
+  renderTop(); route();
+}
+
+function renderCloudState() {
+  const el = document.getElementById('cloud-state');
+  if (!el) return;
+  el.innerHTML = cloudLine();
+}
+function cloudLine() {
+  if (!canSync()) return '';
+  if (Cloud.syncing) return 'Saving online…';
+  if (Cloud.error) return esc(errorText(Cloud.error));
+  if (!Cloud.last) return 'Saved online';
+  const mins = Math.round((Date.now() - Cloud.last) / 60000);
+  return 'Saved online ' + (mins < 1 ? 'just now' : mins === 1 ? '1 minute ago' : mins + ' minutes ago');
+}
+
+// ---------- Account panel inside the profile window ----------
+function accountPanel(close) {
+  const p = me();
+  if (!Cloud.accounts) return { html: '', mount() {} };
+  let html;
+  if (canSync()) {
+    html = `<div class="acct"><b>☁ Saved online</b> as <code>${esc(Cloud.user.username)}</code><div class="small" id="cloud-state">${cloudLine()}</div>
+      <div class="row"><button type="button" class="btn light" data-act="sync">Save now</button><button type="button" class="btn light" data-act="password">Change password</button><button type="button" class="btn light" data-act="code">New Save Code</button></div>
+      <div class="row"><button type="button" class="btn light" data-act="signout">Sign out</button><button type="button" class="btn light danger" data-act="delete">Delete online account</button></div></div>`;
+  } else if (p.account) {
+    html = `<div class="acct"><b>This explorer saves online as <code>${esc(p.account)}</code>.</b><div class="small">Sign in to keep saving.</div>
+      <div class="row"><button type="button" class="btn primary" data-act="login">Sign in</button></div></div>`;
+  } else {
+    html = `<div class="acct"><b>Save your progress online</b><div class="small">Then you can carry on from any computer. We only ask for a username and a password. No email, no real name.</div>
+      <div class="row"><button type="button" class="btn primary" data-act="signup">Create an account</button><button type="button" class="btn light" data-act="login">I have an account</button></div></div>`;
+  }
+  return {
+    html,
+    mount(bg) {
+      bg.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', async () => {
+        const act = b.dataset.act;
+        if (act === 'sync') { b.disabled = true; await syncNow(true); b.disabled = false; return; }
+        if (act === 'signout') {
+          b.disabled = true;
+          await syncNow();
+          try { await api('/api/auth/logout', {}); } catch (e) {}
+          const name = me().name;
+          delete DB.profiles[me().id];
+          Cloud.user = null;
+          DB.current = Object.keys(DB.profiles)[0] || null;
+          saveLocal(); close(); renderTop(); route();
+          toast(`Signed out. ${name}'s progress is saved online.`);
+          if (!hasProfile()) welcomeModal();
+          return;
+        }
+        close();
+        authModal(act);
+      }));
+    }
+  };
+}
+
+// ---------- Sign-up / sign-in / reset / password / delete window ----------
+function authModal(mode) {
+  const titles = { signup: 'Create your account', login: 'Sign in', reset: 'Use your Save Code', password: 'Change your password', code: 'Get a new Save Code', delete: 'Delete your online account' };
+  const body = {
+    signup: `<p style="margin:0">Your progress will be saved online so you can keep going on any computer.</p>
+      <div><label for="au">Username</label><input type="text" id="au" maxlength="24" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="for example: codefox_7">
+        <div class="small">3 to 24 characters: lowercase letters, numbers and _. <b>Don't use your real name.</b></div></div>
+      <div><label for="ap">Password</label><input type="password" id="ap" autocomplete="new-password">
+        <div class="small">At least 8 characters. Tip: three random words, like <code>purple-taco-river</code>.</div></div>
+      <label class="row check"><input type="checkbox" id="ag"> A parent, guardian or teacher said I can make an account.</label>
+      <p class="small" style="margin:0">We store your username, a scrambled copy of your password, and your Python Quest progress. Nothing else. <a href="#privacy" data-close>Read the privacy page</a>.</p>`,
+    login: `<div><label for="au">Username</label><input type="text" id="au" maxlength="24" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <div><label for="ap">Password</label><input type="password" id="ap" autocomplete="current-password"></div>
+      <button type="button" class="linkish" data-mode="reset">Forgot your password? Use your Save Code</button>`,
+    reset: `<p style="margin:0">Your Save Code is the code you wrote down when you made your account. It looks like <code>ABCD-EFGH-JKLM-NPQR</code>.</p>
+      <div><label for="au">Username</label><input type="text" id="au" maxlength="24" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <div><label for="ac">Save Code</label><input type="text" id="ac" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+      <div><label for="ap">New password</label><input type="password" id="ap" autocomplete="new-password"></div>`,
+    password: `<div><label for="ao">Current password</label><input type="password" id="ao" autocomplete="current-password"></div>
+      <div><label for="ap">New password</label><input type="password" id="ap" autocomplete="new-password"></div>
+      <p class="small" style="margin:0">Other computers will be signed out.</p>`,
+    code: `<p style="margin:0">You'll get a new Save Code. Your old one will stop working.</p>`,
+    delete: `<p style="margin:0">This deletes your account and everything saved online. It can't be undone. Your progress on this computer stays.</p>
+      <div><label for="ad">Type your username to confirm</label><input type="text" id="ad" autocomplete="off" autocapitalize="off" spellcheck="false"></div>`
+  }[mode];
+  const btn = { signup: 'Create my account', login: 'Sign in', reset: 'Set new password', password: 'Change password', code: 'Get a new Save Code', delete: 'Delete forever' }[mode];
+  modal(`<h2>${titles[mode]}</h2>${body}
+    <div class="verdict bad" id="aerr" hidden></div>
+    <div class="row"><button type="button" class="btn ${mode === 'delete' ? 'danger-solid' : 'primary'}" id="ago">${btn}</button><button type="button" class="btn light" id="acancel">Cancel</button>
+    ${mode === 'login' ? '<span class="grow"></span><button type="button" class="linkish" data-mode="signup">New here? Create an account</button>' : ''}</div>`, (bg, close) => {
+    const val = (id) => { const el = bg.querySelector('#' + id); return el ? el.value : ''; };
+    const err = bg.querySelector('#aerr');
+    bg.querySelector('#acancel').addEventListener('click', () => { close(); if (!hasProfile()) welcomeModal(); });
+    bg.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { close(); authModal(b.dataset.mode); }));
+    bg.querySelectorAll('[data-close]').forEach(a => a.addEventListener('click', () => close()));
+    bg.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') bg.querySelector('#ago').click(); }));
+    bg.querySelector('#ago').addEventListener('click', async (e) => {
+      const go = e.currentTarget; go.disabled = true; err.hidden = true;
+      try {
+        if (mode === 'signup') {
+          const d = await api('/api/auth/signup', { username: val('au').trim().toLowerCase(), password: val('ap'), grownupOk: bg.querySelector('#ag').checked });
+          Cloud.user = d.user;
+          close();
+          if (!hasProfile()) { const prof = blankProfile(d.user.username, AVATARS[0], 'explorer'); DB.profiles[prof.id] = prof; DB.current = prof.id; }
+          await adoptAccount(d.user, true);
+          saveCodeModal(d.recoveryCode, true);
+        } else if (mode === 'login') {
+          const d = await api('/api/auth/login', { username: val('au').trim().toLowerCase(), password: val('ap') });
+          Cloud.user = d.user; close();
+          await adoptAccount(d.user, true);
+          toast(`Welcome back, ${me().name}!`);
+        } else if (mode === 'reset') {
+          const d = await api('/api/auth/reset', { username: val('au').trim().toLowerCase(), recoveryCode: val('ac'), password: val('ap') });
+          Cloud.user = d.user; close();
+          await adoptAccount(d.user, true);
+          saveCodeModal(d.recoveryCode, false);
+        } else if (mode === 'password') {
+          const d = await api('/api/auth/account', { op: 'password', current: val('ao'), password: val('ap') });
+          Cloud.user = d.user; close(); toast('Password changed.');
+        } else if (mode === 'code') {
+          const d = await api('/api/auth/account', { op: 'recovery' });
+          close(); saveCodeModal(d.recoveryCode, false);
+        } else if (mode === 'delete') {
+          await api('/api/auth/account', { op: 'delete', confirm: val('ad').trim().toLowerCase() });
+          const p = me(); p.account = null; Cloud.user = null; saveLocal(); close(); renderTop(); route();
+          toast('Your online account is deleted.');
+        }
+      } catch (ex) {
+        err.hidden = false; err.textContent = ex.message === 'bad_request' && mode === 'delete' ? 'That isn\'t your username.' : errorText(ex.message);
+        go.disabled = false;
+      }
+    });
+  });
+}
+
+function saveCodeModal(code, fresh) {
+  modal(`<h2>${fresh ? 'Your account is ready!' : 'Your new Save Code'}</h2>
+    <p style="margin:0">This is your <b>Save Code</b>. If you ever forget your password, it's the only way back in, because we don't collect email addresses.</p>
+    <div class="savecode" aria-label="Save Code">${esc(code)}</div>
+    <p style="margin:0"><b>Write it down</b> and give it to a parent, guardian or teacher to keep somewhere safe. You won't see it again.</p>
+    <label class="row check"><input type="checkbox" id="wrote"> I wrote my Save Code down.</label>
+    <div class="row"><button type="button" class="btn light" id="copy">Copy code</button><span class="grow"></span><button type="button" class="btn primary" id="done" disabled>Done</button></div>`, (bg, close) => {
+    bg.querySelector('#wrote').addEventListener('change', (e) => { bg.querySelector('#done').disabled = !e.target.checked; });
+    bg.querySelector('#copy').addEventListener('click', async (e) => {
+      try { await navigator.clipboard.writeText(code); e.target.textContent = 'Copied'; } catch (x) { e.target.textContent = 'Copy didn\'t work. Write it down instead.'; }
+    });
+    bg.querySelector('#done').addEventListener('click', () => { close(); if (fresh) toast('☁ Your progress now saves online.'); });
+  }, true);
+}
+
+function renderPrivacy() {
+  $('#main').innerHTML = `<article class="lesson"><nav class="crumbs"><a href="#map">← Map</a></nav>
+    <h1>Privacy</h1>
+    <section class="card"><h2>The short version</h2>
+      <p>Python Quest is made for students, many of them under 13. We collect as little as possible.</p>
+      <ul>
+        <li><b>Without an account,</b> your progress stays in this browser. Nothing is sent to us.</li>
+        <li><b>With an account,</b> we store your username, a scrambled (hashed) copy of your password and Save Code, and your Python Quest progress: nickname, buddy, track, stars, badges, streak and the code you wrote in missions.</li>
+        <li>We never ask for an email address, real name, birthday, school, photo or location.</li>
+        <li>No ads, no tracking, and we don't sell or share anything with anyone.</li>
+        <li>A child should ask a parent, guardian or teacher before making an account.</li>
+      </ul></section>
+    <section class="card"><h2>Deleting your data</h2>
+      <p>Sign in, open your explorer card (top right), and choose <b>Delete online account</b>. Your account and everything saved online are erased right away.</p>
+      <p>To clear progress saved in this browser, choose <b>Reset my progress</b>, or clear this site's data in your browser settings.</p></section>
+    <section class="card"><h2>Where it's stored</h2>
+      <p>Accounts are stored with Cloudflare, which hosts this website. Python code runs inside your own browser; it isn't sent to a server.</p></section>
+  </article>`;
+  window.scrollTo(0, 0);
+}
+
 // ================= Python engine (Pyodide in a Web Worker) =================
 const PYODIDE_BASE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 const WORKER_SRC = `
@@ -905,21 +1248,23 @@ const KEY = 'pyquest.v1';
 const AVATARS = ['🐍', '🦊', '🐢', '🐼', '🦉', '🐙', '🦖', '🐱'];
 const LEVELS = [[0, 'Hatchling'], [200, 'Wiggler'], [500, 'Explorer'], [900, 'Coder'], [1400, 'Builder'], [2000, 'Hacker'], [2700, 'Wizard'], [3500, 'Legend']];
 let DB = loadDB();
+Object.values(DB.profiles).forEach(q => { try { q.xp = computeXP(q); } catch (e) {} });
 const GUEST = blankProfile('Guest', '🐍', 'explorer');
 
 function loadDB() {
   try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.profiles) return j; } catch (e) {}
   return { profiles: {}, current: null };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} }
+function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} }
+function save() { saveLocal(); scheduleSync(); }
 function blankProfile(name, avatar, track) {
-  return { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, avatar, track, xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [], unlockAll: false };
+  return { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, avatar, track, xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [], unlockAll: false, prefsAt: Date.now(), account: null };
 }
 function me() { return DB.profiles[DB.current] || GUEST; }
 function hasProfile() { return !!DB.profiles[DB.current]; }
 function prog(id) {
   const p = me();
-  if (!p.progress[id]) p.progress[id] = { quiz: false, quizFirst: false, main: false, bonus: false, code: {}, fails: { main: 0, bonus: 0 } };
+  if (!p.progress[id]) p.progress[id] = { quiz: false, quizFirst: false, main: false, bonus: false, code: {}, codeAt: {}, fails: { main: 0, bonus: 0 } };
   return p.progress[id];
 }
 function mastered(L) {
@@ -963,7 +1308,7 @@ function award(xp, why) {
   if (!hasProfile()) return;
   const p = me();
   const before = levelOf(p.xp).n;
-  p.xp += xp;
+  p.xp = computeXP(p);
   touchStreak();
   const fresh = BADGES.filter(b => !p.badges.includes(b.id) && b.test());
   fresh.forEach(b => p.badges.push(b.id));
@@ -1253,7 +1598,7 @@ function renderTop() {
       <span class="engine ${Engine.status}" id="engine">${Engine.status === 'ready' ? 'Python ready' : Engine.status === 'error' ? 'Python offline' : 'Python loading…'}</span>
       <span class="stat" title="${lv.toNext > 0 ? lv.toNext + ' XP to the next level' : ''}"><span><span class="level">Lv ${lv.n} ${lv.name}</span><span class="xpbar"><i style="width:${lv.pct}%"></i></span></span>${p.xp.toLocaleString()} XP</span>
       <span class="stat" title="Days in a row"><span class="flame">🔥</span>${liveStreak()}</span>
-      <button class="who" type="button" id="who"><span class="av">${p.avatar}</span>${esc(p.name)}</button>
+      <button class="who" type="button" id="who"><span class="av">${p.avatar}</span>${esc(p.name)}${canSync() ? ' <span title="Saved online" aria-label="saved online">☁</span>' : ''}</button>
     </div>`;
   $('#who').addEventListener('click', () => hasProfile() ? profileModal() : welcomeModal());
 }
@@ -1376,7 +1721,7 @@ function renderLesson(L) {
     let timer;
     const runner = Runner($('[data-part]', sec), {
       code: { text: p.code[kind] != null ? p.code[kind] : part.starter, original: part.starter },
-      onChange(v) { clearTimeout(timer); timer = setTimeout(() => { p.code[kind] = v; if (hasProfile()) save(); }, 400); },
+      onChange(v) { clearTimeout(timer); timer = setTimeout(() => { p.code[kind] = v; p.codeAt = p.codeAt || {}; p.codeAt[kind] = Date.now(); if (hasProfile()) save(); }, 400); },
       check: async () => {
         const btn = runner.checkBtn; btn.disabled = true;
         verdict.hidden = false; verdict.className = 'verdict'; verdict.textContent = 'Pip is testing your code…';
@@ -1429,11 +1774,11 @@ function renderLesson(L) {
 }
 
 // ================= Modals =================
-function modal(html, onMount) {
+function modal(html, onMount, locked = false) {
   const bg = h(`<div class="modal-bg" role="dialog" aria-modal="true"><div class="modal">${html}</div></div>`);
   document.body.appendChild(bg);
   const close = () => { bg.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e) => { if (e.key === 'Escape' && hasProfile()) close(); };
+  const onKey = (e) => { if (e.key === 'Escape' && hasProfile() && !locked) close(); };
   document.addEventListener('keydown', onKey);
   onMount(bg, close);
   const f = bg.querySelector('input, button'); f && f.focus();
@@ -1453,7 +1798,9 @@ function welcomeModal(adding = false) {
       <button type="button" class="track" data-t="challenger" aria-pressed="false"><b>Challenger</b><span>Ready for more. You must beat each bonus challenge to unlock the next mission. Great for around grade 10.</span></button>
     </div></div>
     <div class="row"><button type="button" class="btn primary" id="go">Start my quest</button>${adding ? '<button type="button" class="btn light" id="cancel">Cancel</button>' : ''}</div>
-    <p class="small" style="margin:0">Your progress is saved in this browser on this device.</p>`, (bg, close) => {
+    <p class="small" style="margin:0">Your progress is saved in this browser. ${Cloud.accounts ? 'You can save it online later.' : ''}</p>
+    ${Cloud.accounts && !adding ? '<button type="button" class="linkish" id="have">Already have an account? Sign in</button>' : ''}`, (bg, close) => {
+    const hv = $('#have', bg); if (hv) hv.addEventListener('click', () => { close(); authModal('login'); });
     bg.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => { avatar = b.dataset.a; bg.querySelectorAll('[data-a]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
     bg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { track = b.dataset.t; bg.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
     const c = $('#cancel', bg); if (c) c.addEventListener('click', close);
@@ -1471,23 +1818,27 @@ function welcomeModal(adding = false) {
 function profileModal() {
   const p = me();
   let resetArmed = false;
-  modal(`
+  let closer = null;
+  const acct = accountPanel(() => closer && closer());
+  closer = modal(`
     <h2>${p.avatar} ${esc(p.name)}</h2>
     <p style="margin:0">Level ${levelOf(p.xp).n} ${levelOf(p.xp).name} · ${p.xp} XP · best streak ${p.best || 0} day(s)</p>
     <div><label id="trl2">Track</label><div class="tracks" role="group" aria-labelledby="trl2">
       <button type="button" class="track" data-t="explorer" aria-pressed="${p.track === 'explorer'}"><b>Explorer</b><span>Bonus challenges optional. Around grade 7.</span></button>
       <button type="button" class="track" data-t="challenger" aria-pressed="${p.track === 'challenger'}"><b>Challenger</b><span>Bonus needed to unlock the next mission. Around grade 10.</span></button>
     </div></div>
+    ${acct.html}
     <label class="row" style="font-weight:700"><input type="checkbox" id="ua" ${p.unlockAll ? 'checked' : ''}> Unlock all missions (for teachers and parents)</label>
     <div><label>Switch explorer</label><div class="profiles">${Object.values(DB.profiles).map(q => `<button type="button" data-p="${q.id}" class="${q.id === p.id ? 'cur' : ''}"><span style="font-size:22px">${q.avatar}</span><span><b>${esc(q.name)}</b><br><span class="small">${q.xp} XP · ${q.track}</span></span></button>`).join('')}</div></div>
     <div class="row"><button type="button" class="btn light" id="add">Add another explorer</button><button type="button" class="btn light" id="reset">Reset my progress</button><span class="grow"></span><button type="button" class="btn primary" id="close">Done</button></div>`, (bg, close) => {
-    bg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { p.track = b.dataset.t; save(); bg.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
-    $('#ua', bg).addEventListener('change', (e) => { p.unlockAll = e.target.checked; save(); });
+    bg.querySelectorAll('[data-t]').forEach(b => b.addEventListener('click', () => { p.track = b.dataset.t; p.prefsAt = Date.now(); save(); bg.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+    $('#ua', bg).addEventListener('change', (e) => { p.unlockAll = e.target.checked; p.prefsAt = Date.now(); save(); });
+    acct.mount(bg, close);
     bg.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { DB.current = b.dataset.p; save(); close(); renderTop(); route(); }));
     $('#add', bg).addEventListener('click', () => { close(); welcomeModal(true); });
     $('#reset', bg).addEventListener('click', (e) => {
       if (!resetArmed) { resetArmed = true; e.target.textContent = 'Tap again: erase everything?'; return; }
-      Object.assign(p, { xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [] }); save(); close(); renderTop(); route();
+      Object.assign(p, { xp: 0, streak: 0, best: 0, lastDay: null, progress: {}, badges: [] }); saveLocal(); forcePush(); close(); renderTop(); route();
     });
     $('#close', bg).addEventListener('click', () => { close(); renderTop(); route(); });
   });
@@ -1496,6 +1847,7 @@ function profileModal() {
 // ================= Router & boot =================
 function route() {
   const hsh = location.hash.slice(1);
+  if (hsh === 'privacy') return renderPrivacy();
   if (hsh.startsWith('m-')) {
     const L = LESSONS.find(x => 'm-' + x.id === hsh);
     if (L) return renderLesson(L);
@@ -1506,7 +1858,8 @@ window.addEventListener('hashchange', route);
 Engine.boot();
 renderTop();
 route();
-if (!hasProfile()) welcomeModal();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncNow(); });
+refreshAuth().then(() => { if (!hasProfile() && !document.querySelector('.modal-bg')) welcomeModal(); });
 
 </script>
 </body>

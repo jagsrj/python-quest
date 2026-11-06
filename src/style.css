@@ -202,6 +202,18 @@ pre.want { background: #f1f7f3; border-left: 4px solid var(--leaf); padding: 8px
 .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 14px; font-weight: 800; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
 #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
 
+/* accounts */
+.acct { display: grid; gap: 8px; background: #f1f7f3; border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--sky); font-weight: 700; text-decoration: underline; text-align: left; }
+.btn.danger { color: #8f2a20; }
+.btn.danger-solid { background: var(--coral); color: #fff; }
+.check { font-weight: 700; align-items: flex-start; flex-wrap: nowrap; }
+.check input { margin-top: 5px; width: 18px; height: 18px; flex: none; }
+.modal input[type=password] { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--line); }
+.savecode { font: 700 clamp(20px, 6vw, 28px)/1.3 var(--font-code); letter-spacing: 2px; text-align: center; padding: 16px; border-radius: 14px; background: #fff8de; border: 2px dashed #e0b737; word-break: break-all; }
+.foot { display: flex; gap: 16px; justify-content: center; padding: 0 16px 40px; color: var(--muted); font-weight: 700; font-size: 14px; }
+.foot a { color: var(--leaf-deep); }
+
 @media (max-width: 640px) {
   .hero { grid-template-columns: 1fr; }
   .hero .pip-big { display: none; }
