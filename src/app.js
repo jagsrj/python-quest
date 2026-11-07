@@ -1,5 +1,7 @@
 // ================= Python engine (Pyodide in a Web Worker) =================
-const PYODIDE_BASE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+// Pyodide is self-hosted (vendor/pyodide, copied to dist/pyodide by build.py) so the site
+// never runs code served by a third-party CDN. Absolute URL because the worker runs from a blob: URL.
+const PYODIDE_BASE = new URL('/pyodide/0.26.4/', location.href).href;
 const WORKER_SRC = `
 let run = null, py = null;
 self.onmessage = async (e) => {

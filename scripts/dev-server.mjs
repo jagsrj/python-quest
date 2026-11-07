@@ -1,7 +1,6 @@
 // Local dev server: serves dist/ and runs the Cloudflare Pages Functions in functions/
 // with an in-memory stand-in for the KV namespace, so accounts and sync can be tested locally.
 //   python3 build.py && node scripts/dev-server.mjs            → http://localhost:8788
-// Optional: PYODIDE_DIR=node_modules/pyodide serves Pyodide locally (offline testing).
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -10,8 +9,6 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(import.meta.url), '../..');
 const PORT = +(process.env.PORT || 8788);
-const PYODIDE_DIR = process.env.PYODIDE_DIR ? resolve(process.env.PYODIDE_DIR) : null;
-const CDN = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 
 const mem = new Map();
 const STORE = {
@@ -40,13 +37,13 @@ http.createServer(async (req, res) => {
       const cookies = response.headers.getSetCookie(); if (cookies.length) res.setHeader('set-cookie', cookies);
       return res.end(Buffer.from(await response.arrayBuffer()));
     }
-    if (PYODIDE_DIR && url.pathname.startsWith('/pyodide/')) {
-      const f = resolve(PYODIDE_DIR, url.pathname.slice(9));
+    if (url.pathname.startsWith('/pyodide/')) {
+      const f = resolve(root, 'dist', url.pathname.slice(1));
+      if (!f.startsWith(resolve(root, 'dist/pyodide'))) { res.statusCode = 404; return res.end(); }
       res.setHeader('content-type', TYPES[extname(f)] || 'application/octet-stream');
       return res.end(await readFile(f));
     }
-    let html = await readFile(resolve(root, 'dist/index.html'), 'utf8');
-    if (PYODIDE_DIR) html = html.replace(CDN, `http://localhost:${PORT}/pyodide/`);
+    const html = await readFile(resolve(root, 'dist/index.html'), 'utf8');
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.end(html);
   } catch (e) { res.statusCode = 500; res.end(String(e)); }
